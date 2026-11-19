@@ -18,11 +18,27 @@ const loginScreen = document.querySelector('#login-screen');
 const adminShell = document.querySelector('.admin-shell');
 const loginForm = document.querySelector('#login-form');
 const loginError = document.querySelector('#login-error');
+const leads = document.querySelector('#leads');
+const leadFilter = document.querySelector('#lead-filter');
+const leadCount = document.querySelector('#lead-count');
+const refreshLeads = document.querySelector('#refresh-leads');
+let leadsData = [];
 function setAuthenticated(value) { loginScreen.hidden = value; adminShell.hidden = !value; }
+function renderLeads(items) {
+  leadsData = items;
+  leadCount.textContent = `${items.filter((lead) => lead.status === 'Новая').length} новых`;
+  const filtered = leadFilter.value === 'all' ? items : items.filter((lead) => lead.status === leadFilter.value);
+  if (!filtered.length) { leads.innerHTML = `<p class="empty-state">${items.length ? 'В этом фильтре заявок нет.' : 'Новых обращений пока нет.'}</p>`; return; }
+  leads.innerHTML = filtered.map((lead) => `<article class="lead"><div><strong>${escapeHtml(lead.name)}</strong><a href="tel:${escapeHtml(lead.phone)}">${escapeHtml(lead.phone)}</a><small>${escapeHtml(lead.type || '')} · ${escapeHtml(lead.createdAt || '')}</small></div><select data-lead-id="${escapeHtml(lead.id)}"><option ${lead.status === 'Новая' ? 'selected' : ''}>Новая</option><option ${lead.status === 'В работе' ? 'selected' : ''}>В работе</option><option ${lead.status === 'Закрыта' ? 'selected' : ''}>Закрыта</option></select></article>`).join('');
+}
+function loadLeads() { fetch('/api/leads', { cache: 'no-store' }).then((response) => response.ok ? response.json() : []).then(renderLeads).catch(() => renderLeads([])); }
 setAuthenticated(false);
-fetch('/api/session', { cache: 'no-store' }).then((response) => response.json()).then((session) => { if (session.authenticated) setAuthenticated(true); }).catch(() => setAuthenticated(false));
-loginForm.addEventListener('submit', async (event) => { event.preventDefault(); const response = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: document.querySelector('#admin-password').value }) }); if (response.ok) { loginError.hidden = true; setAuthenticated(true); } else loginError.hidden = false; });
+fetch('/api/session', { cache: 'no-store' }).then((response) => response.json()).then((session) => { if (session.authenticated) { setAuthenticated(true); loadLeads(); } }).catch(() => setAuthenticated(false));
+loginForm.addEventListener('submit', async (event) => { event.preventDefault(); const response = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: document.querySelector('#admin-password').value }) }); if (response.ok) { loginError.hidden = true; setAuthenticated(true); loadLeads(); } else loginError.hidden = false; });
 document.querySelector('#logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); setAuthenticated(false); });
+leadFilter.addEventListener('change', () => renderLeads(leadsData));
+refreshLeads.addEventListener('click', loadLeads);
+setInterval(() => { if (!adminShell.hidden) loadLeads(); }, 30000);
 
 function projectTemplate(project, index) {
   const gallery = (project.gallery || []).join(', ');
@@ -39,6 +55,7 @@ function render() {
   });
 }
 fetch('/api/content', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then((remote) => { if (remote) { data = remote; data.company = { ...defaults.company, ...(data.company || {}) }; data.projects = (data.projects || []).map((project) => ({ status: 'Реализован', gallery: [], ...project })); } render(); }).catch(() => render());
+leads.addEventListener('change', async (event) => { const id = event.target.dataset.leadId; if (!id) return; const select = event.target; const previous = select.dataset.previous || select.value; select.disabled = true; try { const response = await fetch(`/api/leads/${id}`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ status: select.value }) }); if (!response.ok) throw new Error('status update failed'); select.dataset.previous = select.value; } catch { select.value = previous; } finally { select.disabled = false; } });
 
 form.addEventListener('change', (event) => {
   if (!event.target.files?.[0]) return;

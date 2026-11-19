@@ -1,6 +1,7 @@
 # Runtime content and uploaded media
 content.json
 uploads/
+leads.json
 
 # Local Python/runtime files
 __pycache__/

@@ -1,13 +1,29 @@
 const form = document.querySelector('.contact-form');
 const success = document.querySelector('.form-success');
 if (form && success) {
-  form.addEventListener('submit', (event) => {
+    form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const button = form.querySelector('button');
     button.disabled = true;
-    button.innerHTML = 'Заявка отправлена <span>✓</span>';
-    success.classList.add('visible');
-    form.reset();
+    const payload = Object.fromEntries(new FormData(form).entries());
+    if (window.location.protocol === 'file:') {
+      button.innerHTML = 'Заявка сохранена <span>✓</span>';
+      success.textContent = 'Демо-режим: подключите backend, чтобы получать заявки в админке.';
+      success.classList.add('visible');
+      form.reset();
+      return;
+    }
+    try {
+      const response = await fetch('/api/leads', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+      if (!response.ok) throw new Error('lead request failed');
+      button.innerHTML = 'Заявка отправлена <span>✓</span>';
+      success.classList.add('visible');
+      form.reset();
+    } catch {
+      success.textContent = 'Не удалось отправить. Позвоните нам или попробуйте ещё раз.';
+      success.classList.add('visible');
+      button.disabled = false;
+    }
   });
 }
 

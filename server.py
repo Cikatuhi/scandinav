@@ -4,10 +4,12 @@ import json
 import base64
 import os
 import secrets
+from datetime import datetime
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent
 CONTENT_FILE = ROOT / 'content.json'
+LEADS_FILE = ROOT / 'leads.json'
 UPLOADS_DIR = ROOT / 'uploads'
 ADMIN_PASSWORD = os.environ.get('SKANDINAV_ADMIN_PASSWORD', 'skandinav-demo')
 SESSIONS = set()
@@ -29,6 +31,14 @@ def read_content():
     except (json.JSONDecodeError, OSError):
         return DEFAULT_CONTENT
 
+def read_leads():
+    if not LEADS_FILE.exists():
+        return []
+    try:
+        return json.loads(LEADS_FILE.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError):
+        return []
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -39,6 +49,12 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if self.path == '/api/content':
             self.send_json(read_content())
+            return
+        if self.path == '/api/leads':
+            if not self.is_authenticated():
+                self.send_error(401)
+                return
+            self.send_json(read_leads())
             return
         super().do_GET()
 
@@ -55,6 +71,19 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(400, 'Invalid content payload')
 
     def do_POST(self):
+        if self.path == '/api/leads':
+            length = int(self.headers.get('Content-Length', '0'))
+            try:
+                payload = json.loads(self.rfile.read(length).decode('utf-8'))
+                if not payload.get('name') or not payload.get('phone'):
+                    raise ValueError('name and phone are required')
+                leads = read_leads()
+                leads.insert(0, {'id': secrets.token_urlsafe(10), 'name': str(payload['name'])[:120], 'phone': str(payload['phone'])[:80], 'type': str(payload.get('type', ''))[:120], 'status': 'Новая', 'createdAt': datetime.now().isoformat(timespec='minutes')})
+                LEADS_FILE.write_text(json.dumps(leads, ensure_ascii=False, indent=2), encoding='utf-8')
+                self.send_json({'ok': True})
+            except (ValueError, json.JSONDecodeError, OSError):
+                self.send_error(400, 'Invalid lead payload')
+            return
         if self.path == '/api/login':
             length = int(self.headers.get('Content-Length', '0'))
             try:
@@ -91,6 +120,27 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({'ok': True, 'url': f'/uploads/{filename}'})
             except (ValueError, KeyError, base64.binascii.Error, OSError):
                 self.send_error(400, 'Invalid image payload')
+            return
+        self.send_error(404)
+
+    def do_PATCH(self):
+        if self.path.startswith('/api/leads/') and self.is_authenticated():
+            lead_id = self.path.rsplit('/', 1)[-1]
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                payload = json.loads(self.rfile.read(length).decode('utf-8'))
+                leads = read_leads()
+                for lead in leads:
+                    if lead.get('id') == lead_id:
+                        status = payload.get('status', lead.get('status', 'Новая'))
+                        if status not in {'Новая', 'В работе', 'Закрыта'}:
+                            raise ValueError('Invalid lead status')
+                        lead['status'] = status
+                        break
+                LEADS_FILE.write_text(json.dumps(leads, ensure_ascii=False, indent=2), encoding='utf-8')
+                self.send_json({'ok': True})
+            except (ValueError, json.JSONDecodeError, OSError):
+                self.send_error(400)
             return
         self.send_error(404)
 
