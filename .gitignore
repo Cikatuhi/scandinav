@@ -1,0 +1,13 @@
+# Runtime content and uploaded media
+content.json
+uploads/
+
+# Local Python/runtime files
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
