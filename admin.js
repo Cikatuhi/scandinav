@@ -1,14 +1,16 @@
 const storageKey = 'skandinavSiteData';
 const defaults = {
+  company: { phone: '+7 495 123-45-67', email: 'hello@skandinav.house', telegram: 'https://t.me/', whatsapp: 'https://wa.me/74951234567', hours: 'Пн—Пт · 09:00—19:00', region: 'Москва и область' },
   heroImage: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1500&q=85',
   projects: [
-    { title: 'Тихий берег', description: 'Дом для спокойной жизни у воды', location: 'Истринское водохранилище', details: '240 м² · 2024', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', gallery: [] },
-    { title: 'Дом в соснах', description: '', location: 'Калужская область', details: '180 м² · 2023', image: 'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=900&q=80', gallery: [] },
-    { title: 'Северный свет', description: '', location: 'Новорижское ш.', details: '320 м² · 2022', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80', gallery: [] }
+    { title: 'Тихий берег', description: 'Дом для спокойной жизни у воды', location: 'Истринское водохранилище', details: '240 м² · 2024', status: 'Реализован', image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', gallery: [] },
+    { title: 'Дом в соснах', description: '', location: 'Калужская область', details: '180 м² · 2023', status: 'В работе', image: 'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=900&q=80', gallery: [] },
+    { title: 'Северный свет', description: '', location: 'Новорижское ш.', details: '320 м² · 2022', status: 'Реализован', image: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80', gallery: [] }
   ]
 };
 const clone = (value) => JSON.parse(JSON.stringify(value));
 let data = (() => { try { return JSON.parse(localStorage.getItem(storageKey)) || clone(defaults); } catch { return clone(defaults); } })();
+data.company = { ...defaults.company, ...(data.company || {}) };
 const form = document.querySelector('#content-form');
 const projects = document.querySelector('#projects');
 const status = document.querySelector('#status');
@@ -24,18 +26,19 @@ document.querySelector('#logout').addEventListener('click', async () => { await 
 
 function projectTemplate(project, index) {
   const gallery = (project.gallery || []).join(', ');
-  return `<article class="project-editor"><div class="project-number">0${index + 1}</div><div class="project-fields"><div class="editor-title"><strong>Проект ${index + 1}</strong><button class="remove-project" type="button" data-remove="${index}">Удалить</button></div><label>Название<input name="title-${index}" value="${escapeHtml(project.title)}" /></label><label>Описание<input name="description-${index}" value="${escapeHtml(project.description || '')}" /></label><div class="two-col"><label>Локация<input name="location-${index}" value="${escapeHtml(project.location)}" /></label><label>Площадь и год<input name="details-${index}" value="${escapeHtml(project.details)}" /></label></div><label>Главное фото<input name="image-${index}" type="text" value="${escapeHtml(project.image)}" /></label><label>Или загрузите файл<input name="file-${index}" type="file" accept="image/*" /></label><label>Галерея (ссылки через запятую)<textarea name="gallery-${index}" rows="2">${escapeHtml(gallery)}</textarea></label><div class="preview" data-preview="image-${index}"></div></div></article>`;
+  return `<article class="project-editor"><div class="project-number">0${index + 1}</div><div class="project-fields"><div class="editor-title"><strong>Проект ${index + 1}</strong><button class="remove-project" type="button" data-remove="${index}">Удалить</button></div><label>Название<input name="title-${index}" value="${escapeHtml(project.title)}" /></label><label>Описание<input name="description-${index}" value="${escapeHtml(project.description || '')}" /></label><div class="two-col"><label>Локация<input name="location-${index}" value="${escapeHtml(project.location)}" /></label><label>Площадь и год<input name="details-${index}" value="${escapeHtml(project.details)}" /></label></div><label>Статус<select name="status-${index}"><option ${project.status === 'Реализован' ? 'selected' : ''}>Реализован</option><option ${project.status === 'В работе' ? 'selected' : ''}>В работе</option><option ${project.status === 'Скрыт' ? 'selected' : ''}>Скрыт</option></select></label><label>Главное фото<input name="image-${index}" type="text" value="${escapeHtml(project.image)}" /></label><label>Или загрузите файл<input name="file-${index}" type="file" accept="image/*" /></label><label>Галерея (ссылки через запятую)<textarea name="gallery-${index}" rows="2">${escapeHtml(gallery)}</textarea></label><div class="preview" data-preview="image-${index}"></div></div></article>`;
 }
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char])); }
 function render() {
   form.heroImage.value = data.heroImage || '';
+  Object.entries({ companyPhone:'phone', companyEmail:'email', companyTelegram:'telegram', companyWhatsapp:'whatsapp', companyHours:'hours', companyRegion:'region' }).forEach(([field, key]) => { form.elements[field].value = data.company[key] || ''; });
   projects.innerHTML = data.projects.map(projectTemplate).join('');
   document.querySelectorAll('[data-preview]').forEach((preview) => {
     const input = form.elements[preview.dataset.preview];
     preview.style.backgroundImage = input && input.value ? `url("${input.value}")` : 'none';
   });
 }
-fetch('/api/content', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then((remote) => { if (remote) data = remote; render(); }).catch(() => render());
+fetch('/api/content', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then((remote) => { if (remote) { data = remote; data.company = { ...defaults.company, ...(data.company || {}) }; data.projects = (data.projects || []).map((project) => ({ status: 'Реализован', gallery: [], ...project })); } render(); }).catch(() => render());
 
 form.addEventListener('change', (event) => {
   if (!event.target.files?.[0]) return;
@@ -60,8 +63,8 @@ form.addEventListener('input', (event) => {
   if (preview) preview.style.backgroundImage = event.target.value ? `url("${event.target.value}")` : 'none';
 });
 function collectData() {
-  return { heroImage: form.heroImage.value.trim(), projects: data.projects.map((_, index) => ({
-    title: form.elements[`title-${index}`].value.trim(), description: form.elements[`description-${index}`].value.trim(), location: form.elements[`location-${index}`].value.trim(), details: form.elements[`details-${index}`].value.trim(), image: form.elements[`image-${index}`].value.trim(), gallery: form.elements[`gallery-${index}`].value.split(',').map((item) => item.trim()).filter(Boolean)
+  return { heroImage: form.heroImage.value.trim(), company: { phone:form.companyPhone.value.trim(), email:form.companyEmail.value.trim(), telegram:form.companyTelegram.value.trim(), whatsapp:form.companyWhatsapp.value.trim(), hours:form.companyHours.value.trim(), region:form.companyRegion.value.trim() }, projects: data.projects.map((project, index) => ({
+    title: form.elements[`title-${index}`].value.trim(), description: form.elements[`description-${index}`].value.trim(), location: form.elements[`location-${index}`].value.trim(), details: form.elements[`details-${index}`].value.trim(), status: form.elements[`status-${index}`].value, image: form.elements[`image-${index}`].value.trim(), gallery: form.elements[`gallery-${index}`].value.split(',').map((item) => item.trim()).filter(Boolean)
   })) };
 }
 async function persist(next) {
@@ -77,7 +80,7 @@ form.addEventListener('submit', (event) => {
   persist(collectData()).then((remote) => { status.textContent = remote ? 'Сохранено на сервере' : 'Сохранено в этом браузере'; });
   setTimeout(() => { status.textContent = ''; }, 3000);
 });
-document.querySelector('#add-project').addEventListener('click', () => { data.projects.push({ title: 'Новый проект', description: '', location: '', details: '', image: '', gallery: [] }); render(); });
+document.querySelector('#add-project').addEventListener('click', () => { data.projects.push({ title: 'Новый проект', description: '', location: '', details: '', status: 'В работе', image: '', gallery: [] }); render(); });
 projects.addEventListener('click', (event) => { const button = event.target.closest('[data-remove]'); if (!button) return; data.projects.splice(Number(button.dataset.remove), 1); render(); });
 document.querySelector('#preview').addEventListener('click', () => { persist(collectData()); window.open('index.html#projects', '_blank'); });
 document.querySelector('#reset').addEventListener('click', () => { data = clone(defaults); localStorage.removeItem(storageKey); render(); status.textContent = 'Возвращены исходные данные'; });

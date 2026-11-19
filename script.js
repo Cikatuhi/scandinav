@@ -33,6 +33,17 @@ const localContent = (() => {
 })();
 function applyContent(savedContent) {
 if (savedContent) {
+  const company = savedContent.company || {};
+  const phone = document.querySelector('.contact-direct a[href^="tel"]');
+  const hours = document.querySelector('.contact-direct span');
+  if (phone && company.phone) { phone.textContent = company.phone; phone.href = `tel:${company.phone.replace(/[^+\d]/g, '')}`; }
+  if (hours && company.hours) hours.textContent = company.hours;
+  const email = document.querySelector('.footer-links a[href^="mailto"]');
+  const telegram = document.querySelector('.footer-links a[href*="t.me"]');
+  const whatsapp = document.querySelector('.footer-links a[href*="wa.me"]');
+  if (email && company.email) { email.textContent = company.email; email.href = `mailto:${company.email}`; }
+  if (telegram && company.telegram) telegram.href = company.telegram;
+  if (whatsapp && company.whatsapp) whatsapp.href = company.whatsapp;
   const heroImage = document.querySelector('.hero-image');
   if (heroImage && savedContent.heroImage) {
     heroImage.style.backgroundImage = `linear-gradient(90deg, rgba(28,40,28,.15), transparent 42%), url("${savedContent.heroImage}")`;
@@ -42,7 +53,7 @@ if (savedContent) {
   while (grid && cards.length < (savedContent.projects || []).length) {
     const card = document.createElement('article');
     card.className = 'project-card';
-    card.innerHTML = '<div class="project-image"><span class="project-hover-label">Смотреть проект <b>↗</b></span></div><div class="project-meta"><div><span class="project-index"></span><h3></h3><p></p></div><div><span></span><span></span></div></div>';
+    card.innerHTML = '<div class="project-image"><span class="project-tag"></span><span class="project-hover-label">Смотреть проект <b>↗</b></span></div><div class="project-meta"><div><span class="project-index"></span><h3></h3><p></p></div><div><span></span><span></span></div></div>';
     grid.appendChild(card);
     cards.push(card);
   }
@@ -54,6 +65,10 @@ if (savedContent) {
     const title = card.querySelector('h3');
     const description = card.querySelector('p');
     const meta = card.querySelector('.project-meta > div:last-child');
+    let tag = card.querySelector('.project-tag');
+    if (!tag && image) { tag = document.createElement('span'); tag.className = 'project-tag'; image.prepend(tag); }
+    if (tag) { tag.textContent = project.status || ''; tag.hidden = !project.status || project.status === 'Скрыт'; }
+    card.classList.toggle('project-hidden', project.status === 'Скрыт');
     if (image && project.image) image.style.backgroundImage = `url("${project.image}")`;
     if (title && project.title) title.textContent = project.title;
     if (description && project.description !== undefined) description.textContent = project.description;

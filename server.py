@@ -12,11 +12,12 @@ UPLOADS_DIR = ROOT / 'uploads'
 ADMIN_PASSWORD = os.environ.get('SKANDINAV_ADMIN_PASSWORD', 'skandinav-demo')
 SESSIONS = set()
 DEFAULT_CONTENT = {
+    'company': {'phone': '+7 495 123-45-67', 'email': 'hello@skandinav.house', 'telegram': 'https://t.me/', 'whatsapp': 'https://wa.me/74951234567', 'hours': 'Пн—Пт · 09:00—19:00', 'region': 'Москва и область'},
     'heroImage': 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1500&q=85',
     'projects': [
-        {'title': 'Тихий берег', 'description': 'Дом для спокойной жизни у воды', 'location': 'Истринское водохранилище', 'details': '240 м² · 2024', 'image': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', 'gallery': []},
-        {'title': 'Дом в соснах', 'description': '', 'location': 'Калужская область', 'details': '180 м² · 2023', 'image': 'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=900&q=80', 'gallery': []},
-        {'title': 'Северный свет', 'description': '', 'location': 'Новорижское ш.', 'details': '320 м² · 2022', 'image': 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80', 'gallery': []},
+        {'title': 'Тихий берег', 'description': 'Дом для спокойной жизни у воды', 'location': 'Истринское водохранилище', 'details': '240 м² · 2024', 'status': 'Реализован', 'image': 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80', 'gallery': []},
+        {'title': 'Дом в соснах', 'description': '', 'location': 'Калужская область', 'details': '180 м² · 2023', 'status': 'В работе', 'image': 'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=900&q=80', 'gallery': []},
+        {'title': 'Северный свет', 'description': '', 'location': 'Новорижское ш.', 'details': '320 м² · 2022', 'status': 'Реализован', 'image': 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=900&q=80', 'gallery': []},
     ],
 }
 
