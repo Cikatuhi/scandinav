@@ -18,7 +18,7 @@ const loginForm = document.querySelector('#login-form');
 const loginError = document.querySelector('#login-error');
 function setAuthenticated(value) { loginScreen.hidden = value; adminShell.hidden = !value; }
 setAuthenticated(false);
-fetch('/api/session', { cache: 'no-store' }).then((response) => response.json()).then((session) => { if (session.authenticated) setAuthenticated(true); }).catch(() => setAuthenticated(true));
+fetch('/api/session', { cache: 'no-store' }).then((response) => response.json()).then((session) => { if (session.authenticated) setAuthenticated(true); }).catch(() => setAuthenticated(false));
 loginForm.addEventListener('submit', async (event) => { event.preventDefault(); const response = await fetch('/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: document.querySelector('#admin-password').value }) }); if (response.ok) { loginError.hidden = true; setAuthenticated(true); } else loginError.hidden = false; });
 document.querySelector('#logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST' }); setAuthenticated(false); });
 
