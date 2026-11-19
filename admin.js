@@ -23,13 +23,35 @@ const leadFilter = document.querySelector('#lead-filter');
 const leadCount = document.querySelector('#lead-count');
 const refreshLeads = document.querySelector('#refresh-leads');
 let leadsData = [];
+let leadsInitialized = false;
+let knownLeadIds = new Set();
 function setAuthenticated(value) { loginScreen.hidden = value; adminShell.hidden = !value; }
+function notifyNewLead() {
+  const AudioCtor = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtor) return;
+  const context = new AudioCtor();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  oscillator.frequency.value = 740;
+  gain.gain.setValueAtTime(0.0001, context.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.24);
+  oscillator.connect(gain).connect(context.destination);
+  oscillator.start();
+  oscillator.stop(context.currentTime + 0.25);
+  oscillator.addEventListener('ended', () => context.close());
+}
 function renderLeads(items) {
+  const ids = new Set(items.map((lead) => lead.id));
+  const hasNewLead = leadsInitialized && items.some((lead) => !knownLeadIds.has(lead.id));
+  knownLeadIds = ids;
+  if (hasNewLead) notifyNewLead();
+  leadsInitialized = true;
   leadsData = items;
   leadCount.textContent = `${items.filter((lead) => lead.status === 'Новая').length} новых`;
   const filtered = leadFilter.value === 'all' ? items : items.filter((lead) => lead.status === leadFilter.value);
   if (!filtered.length) { leads.innerHTML = `<p class="empty-state">${items.length ? 'В этом фильтре заявок нет.' : 'Новых обращений пока нет.'}</p>`; return; }
-  leads.innerHTML = filtered.map((lead) => `<article class="lead"><div><strong>${escapeHtml(lead.name)}</strong><a href="tel:${escapeHtml(lead.phone)}">${escapeHtml(lead.phone)}</a><small>${escapeHtml(lead.type || '')} · ${escapeHtml(lead.createdAt || '')}</small></div><select data-lead-id="${escapeHtml(lead.id)}"><option ${lead.status === 'Новая' ? 'selected' : ''}>Новая</option><option ${lead.status === 'В работе' ? 'selected' : ''}>В работе</option><option ${lead.status === 'Закрыта' ? 'selected' : ''}>Закрыта</option></select></article>`).join('');
+  leads.innerHTML = filtered.map((lead) => `<article class="lead ${lead.status === 'Новая' ? 'lead-new' : ''}"><div><strong>${escapeHtml(lead.name)}</strong><a href="tel:${escapeHtml(lead.phone)}">${escapeHtml(lead.phone)}</a><small>${escapeHtml(lead.type || '')} · ${escapeHtml(lead.createdAt || '')}</small></div><select data-lead-id="${escapeHtml(lead.id)}"><option ${lead.status === 'Новая' ? 'selected' : ''}>Новая</option><option ${lead.status === 'В работе' ? 'selected' : ''}>В работе</option><option ${lead.status === 'Закрыта' ? 'selected' : ''}>Закрыта</option></select></article>`).join('');
 }
 function loadLeads() { fetch('/api/leads', { cache: 'no-store' }).then((response) => response.ok ? response.json() : []).then(renderLeads).catch(() => renderLeads([])); }
 setAuthenticated(false);
